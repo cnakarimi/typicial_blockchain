@@ -1,11 +1,16 @@
-# Initializing our blockchain list
+import functools
+
+# The reward we give to miners (for creating a new block)
 MINING_REWARD = 10
 
+# Our starting block for the blockchain
 genesis_block = {
     'previous_hash': '',
     'index': 0,
     'transactions': []
 }
+
+# Initializing our blockchain list
 blockchain = [genesis_block]
 open_transactions = []
 owner = 'Sina'
@@ -17,21 +22,30 @@ def hash_block(block):
 
 
 def get_balance(participant):
+    """Calculate and return the balance for a participant.
+
+    Arguments:
+        :participant: The person for whom to calculate the balance.
+    """
+    # Fetch a list of all sent coin amounts for the given person (empty list are)
+    # This fetches sent amounts of transactions that were already included in blocks of the blockchain
     tx_sender = [[tx['amount'] for tx in block['transactions']
                   if tx['sender'] == participant] for block in blockchain]
+    # Fetch a list of all sent coin amounts for the given person (empty list are)
+    # This fetches sent amounts of open transactions (to avoid double spending)
     open_tx_sender = [tx['amount']
                       for tx in open_transactions if tx['sender'] == participant]
     tx_sender.append(open_tx_sender)
-    amount_sent = 0
-    for tx in tx_sender:
-        if len(tx) > 0:
-            amount_sent += tx[0]
+    print(tx_sender)
+    amount_sent = functools.reduce(
+        lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_sender, 0)
+    # This fetches received coin amounts of transactions that were already included in blocks of the blockchain
+    # We ignore open transactions here because you shouldn't be able to spend coin before the transaction was confirmed + include
     tx_recipient = [[tx['amount'] for tx in block['transactions']
                      if tx['recipient'] == participant] for block in blockchain]
-    amount_received = 0
-    for tx in tx_recipient:
-        if len(tx) > 0:
-            amount_received += tx[0]
+    amount_received = functools.reduce(
+        lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_recipient, 0)
+    # Return the total balance
     return amount_received - amount_sent
 
 
@@ -178,7 +192,7 @@ while waiting_for_input:
         print("Invalid blockchain")
         # Break out of the loop
         break
-    print(get_balance('Sina'))
+    print('Balance of {}: {:6.2f}'.format('Sina', get_balance('Sina')))
 else:
     print("User left!")
 
